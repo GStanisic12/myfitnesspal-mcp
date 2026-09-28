@@ -336,6 +336,8 @@ def set_weight(client, day: date, value: float) -> dict:
     return {"day": item["date"], "weight": item["value"], "unit": item.get("unit")}
 
 
+# MFP stores 1 cup as 240 mL and 1 fl oz as 29.5735 mL (verified 2026-09-28 via
+# GET /food/water, matching MFP.Tools.UnitConverter.Water in the web app).
 ML_PER_WATER_UNIT = {"ml": 1.0, "l": 1000.0, "cup": 240.0, "fl_oz": 29.5735}
 
 WATER_UNIT_ALIASES = {
