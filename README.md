@@ -110,7 +110,7 @@ Then use the same `--from 'mfp-mcp[autorefresh]'` form in your client config
 | `fitness_delete_food` | Remove a diary entry by name match |
 | `fitness_modify_food` | Replace an entry (or change its quantity) |
 | `fitness_log_weight` | Log a weight measurement (updates the same day on re-log) |
-| `fitness_log_water` | Add cups, fluid ounces, or milliliters to the real water tracker |
+| `fitness_log_water` | Add water (cups, fl oz, mL, L) or set the day's total with `replace` |
 | `fitness_get_exercise` | Read the exercise diary (cardio + strength) |
 | `fitness_get_note` | Read the MyFitnessPal daily diary note (the "Notes" box) for a day |
 | `fitness_log_note` | Write that daily note to MFP (replace, or `append` a new line) |
@@ -127,7 +127,9 @@ MyFitnessPal (first call on a fresh install fetches up to 30 days, one request
 per day — subsequent calls are fast).
 
 Water logging reads the day's current total from `/food/water`, adds the requested
-quantity, and posts the new total back to the same endpoint. The separate
+quantity, and posts the new total back to the same endpoint. Pass
+`replace=True` to set the day's total outright (e.g. to fix a mislogged amount);
+every call returns `previous_ml` so a mistake can be reverted. The separate
 `/stats` request with a `water_logged` event is analytics telemetry; it does not
 persist the water total.
 

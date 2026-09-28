@@ -8,6 +8,9 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- `fitness_log_water`: add water to MyFitnessPal's water tracker in cups,
+  fluid ounces, millilitres, or litres (common spellings accepted), or set the
+  day's total with `replace=True`.
 - Contributor documentation: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`,
   `SECURITY.md`, issue and pull request templates, `CODEOWNERS`.
 - Ruff lint and format checks in CI, with a `pre-commit` config.

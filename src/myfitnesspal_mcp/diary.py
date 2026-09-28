@@ -336,32 +336,77 @@ def set_weight(client, day: date, value: float) -> dict:
     return {"day": item["date"], "weight": item["value"], "unit": item.get("unit")}
 
 
-def add_water(client, day: date, amount: float, unit: str = "cup") -> dict:
-    """Add water to a day's existing total using MFP's web diary endpoint."""
-    ml_per_unit = {"ml": 1.0, "cup": 240.0, "fl_oz": 29.5735}
-    unit = unit.lower()
-    if unit not in ml_per_unit:
-        raise ValueError("unit must be one of: ml, cup, fl_oz")
-    if amount <= 0:
-        raise ValueError("amount must be greater than zero")
+ML_PER_WATER_UNIT = {"ml": 1.0, "l": 1000.0, "cup": 240.0, "fl_oz": 29.5735}
 
-    url = parse.urljoin(client.BASE_URL_SECURE, "food/water")
+WATER_UNIT_ALIASES = {
+    "ml": "ml",
+    "mls": "ml",
+    "milliliter": "ml",
+    "milliliters": "ml",
+    "millilitre": "ml",
+    "millilitres": "ml",
+    "l": "l",
+    "liter": "l",
+    "liters": "l",
+    "litre": "l",
+    "litres": "l",
+    "cup": "cup",
+    "cups": "cup",
+    "floz": "fl_oz",
+    "oz": "fl_oz",
+    "ounce": "fl_oz",
+    "ounces": "fl_oz",
+    "fluidounce": "fl_oz",
+    "fluidounces": "fl_oz",
+}
+
+
+def normalize_water_unit(unit: str) -> str:
+    compact = "".join(character for character in unit.lower() if character.isalnum())
+    canonical = WATER_UNIT_ALIASES.get(compact)
+    if canonical is None:
+        accepted = ", ".join(ML_PER_WATER_UNIT)
+        raise ValueError(f"unknown water unit {unit!r}; use one of: {accepted}")
+    return canonical
+
+
+def get_water_ml(client, day: date) -> float:
     resp = client.session.get(
-        f"{url}?date={day.isoformat()}",
+        parse.urljoin(client.BASE_URL_SECURE, "food/water")
+        + f"?date={day.isoformat()}",
         headers=api_headers(client, {"Accept": "application/json"}),
     )
     resp.raise_for_status()
-    current_ml = float(resp.json()["item"]["milliliters"])
-    added_ml = float(amount) * ml_per_unit[unit]
-    water_ml = current_ml + added_ml
+    return float(resp.json()["item"]["milliliters"])
+
+
+def log_water(
+    client, day: date, amount: float, unit: str = "cup", replace: bool = False
+) -> dict:
+    """Adds `amount` to the day's water total, or with replace=True sets the
+    total to `amount`. /food/water always takes the full daily total."""
+    canonical_unit = normalize_water_unit(unit)
+    if replace and amount < 0:
+        raise ValueError("amount can't be negative")
+    if not replace and amount <= 0:
+        raise ValueError(
+            "amount must be greater than zero; use replace=True to lower the total"
+        )
+    amount_ml = float(amount) * ML_PER_WATER_UNIT[canonical_unit]
+    previous_ml = get_water_ml(client, day)
+    water_ml = amount_ml if replace else previous_ml + amount_ml
     _, csrf = diary_page(client, day)
     resp = client.session.post(
-        url,
+        parse.urljoin(client.BASE_URL_SECURE, "food/water"),
         data={"milliliters": water_ml, "date": day.isoformat()},
         headers=api_headers(
             client,
             {
                 "X-CSRF-Token": csrf,
+                "Origin": "https://www.myfitnesspal.com",
+                "Referer": parse.urljoin(
+                    client.BASE_URL_SECURE, f"food/diary/{client.effective_username}"
+                ),
                 "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             },
         ),
@@ -370,10 +415,11 @@ def add_water(client, day: date, amount: float, unit: str = "cup") -> dict:
         raise RuntimeError(f"MyFitnessPal /food/water returned HTTP {resp.status_code}")
     return {
         "day": day.isoformat(),
-        "added_ml": added_ml,
+        "previous_ml": previous_ml,
         "water_ml": water_ml,
         "amount": amount,
-        "unit": unit,
+        "unit": canonical_unit,
+        "replaced": replace,
     }
 
 

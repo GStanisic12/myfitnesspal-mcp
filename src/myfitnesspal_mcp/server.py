@@ -211,18 +211,23 @@ async def fitness_log_weight(
 async def fitness_log_water(
     amount: float,
     unit: str = "cup",
+    replace: bool = False,
     date: str | None = None,
     ctx: Context = None,
 ) -> dict:
-    """Add water to the real MyFitnessPal water tracker.
+    """Log water to the real MyFitnessPal water tracker.
 
-    amount: positive quantity to add. unit: cup | fl_oz | ml.
+    amount: quantity to add to the day's total. unit: cup | fl_oz | ml | l
+    (common spellings like "cups", "oz", "fl oz", "milliliters", "litres" are
+    accepted). replace: set the day's total to `amount` instead of adding —
+    use it to correct a mislogged total (amount=0 clears the day).
+    Returns previous_ml so a mistake can be undone with replace=True.
     date: YYYY-MM-DD (default: today).
     """
     day = parse_day(date)
 
     def op(store, client):
-        result = diary.add_water(client, day, amount, unit)
+        result = diary.log_water(client, day, amount, unit, replace=replace)
         store.upsert_nutrition(day.isoformat(), water_ml=result["water_ml"])
         return {"ok": True, **result}
 
