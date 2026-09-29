@@ -386,7 +386,8 @@ async def fitness_log_water(
     (common spellings like "cups", "oz", "fl oz", "milliliters", "litres" are
     accepted). replace: set the day's total to `amount` instead of adding —
     use it to correct a mislogged total (amount=0 clears the day).
-    Returns previous_ml so a mistake can be undone with replace=True.
+    Returns previous_ml; to undo a mistake, call again with
+    amount=previous_ml, unit="ml", replace=True.
     date: YYYY-MM-DD (default: today).
     """
     day = parse_day(date)

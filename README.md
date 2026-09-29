@@ -166,7 +166,8 @@ per day — subsequent calls are fast).
 Water logging reads the day's current total from `/food/water`, adds the requested
 quantity, and posts the new total back to the same endpoint. Pass
 `replace=True` to set the day's total outright (e.g. to fix a mislogged amount);
-every call returns `previous_ml` so a mistake can be reverted. The separate
+every call returns `previous_ml`, so a mistake can be reverted by passing it
+back as `amount` with `unit="ml"` and `replace=True`. The separate
 `/stats` request with a `water_logged` event is analytics telemetry; it does not
 persist the water total.
 
